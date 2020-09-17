@@ -1,0 +1,283 @@
+<html>
+<head>
+    <script>
+        let ws = null;
+		let is_login = false;
+        let room = 0;
+        function doConnect(addr) {
+            if(ws == null){
+                ws = new WebSocket("ws://" + addr);
+                if (ws == null){
+                    alert("connect ws server error!!");
+                }
+            }
+            else{
+                alert("you are already connect server");
+            }
+            ws.onopen = () => {
+                document.getElementById("log").value += ("Connection open\n");
+            };
+            ws.onmessage = (event) => {
+                var info = JSON.parse(event.data);
+                var msg = info.cmd + "  " + info.ok + " " + info.msg;
+                document.getElementById("log").value += msg;
+                document.getElementById("log").value += "\n";
+                
+				//var msg = info.cmd + "  " + info.ok + " " + info.error;
+				
+				//document.getElementById("log").value += msg;
+				//document.getElementById("log").value += "\n";
+                if(info.cmd == "create_res"){
+                    //var msg = info.cmd + "  " + info.ok + " " + info.room;
+                    room = info.room;
+                    document.getElementById("room").value = info.room;
+                    //document.getElementById("log").value += msg;
+				    //document.getElementById("log").value += "\n";
+                }
+                else if(info.cmd == "login_res"){
+                    if(info.ok == true){
+                        is_login = true;
+                    }
+                }
+                else if(info.cmd == "join_res"){
+                    if(info.ok == true){
+                        room = document.getElementById("room").value;
+                    }
+                }
+                else if(info.cmd == "chat_res"){
+                    
+                    document.getElementById("log").value += info.msg;
+                    document.getElementById("log").value += "\n";
+                }
+
+                //document.getElementById("log").value += event.data;
+				/*
+				if(info.msg_id == 101){
+                    document.getElementById("log").value += ("server:" + info.data + "\n");
+                }
+                else if(info.msg_id == 203){
+                    document.getElementById("log").value += (info.name + ":" + info.data + "\n");
+                }
+				else if(info.msg_id == 103){
+                    alert("login ok");
+					is_login = true;
+                }
+				else if(info.msg_id == 104){
+                    alert("login error");
+                }
+				else if(info.msg_id == 105){
+                    alert("register ok");
+                }
+                else if(info.msg_id == 106){
+                    alert("register error");
+                }
+				
+				*/
+                
+            };
+            ws.onclose = () => {
+				is_login = false;
+                document.getElementById("log").value += ("Connection closed\n");
+            };
+        }
+
+        document.addEventListener("DOMContentLoaded", (event) => {
+            document.getElementById("btn_connect").onclick = () => {
+                let server_addr = document.getElementById("server_addr").value;
+                doConnect(server_addr);
+            };
+
+            document.getElementById("btn_send").onclick = () => {
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+				if(is_login == false){
+					alert("you are login error");
+                    return;
+				}
+				
+				let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+				let user_password = document.getElementById("password").value;
+                if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+                var messageObj = {'cmd':'chat','name':user_name,'data':msg};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+                //document.getElementById("log").value += ("Send: " + msg + "\n");
+            };
+			document.getElementById("btn_register").onclick = () => {
+				//let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+				let user_password = document.getElementById("password").value;
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+				if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+				
+				var messageObj = {'cmd':'register','name':user_name,'password':user_password};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+			};
+			document.getElementById("btn_login").onclick = () => {
+				//let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+				let user_password = document.getElementById("password").value;
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+				if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+				
+				var messageObj = {'cmd':'login','name':user_name,'password':user_password};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+			};
+
+            document.getElementById("btn_create_room").onclick = () => {
+				let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+				let user_password = document.getElementById("password").value;
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+				if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+				
+				var messageObj = {'cmd':'create','name':user_name,'password':user_password};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+			};
+            document.getElementById("btn_join_room").onclick = () => {
+				let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+                let user_password = document.getElementById("password").value;
+                let roomd = document.getElementById("room").value;
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+                if(room != 0){
+                    alert("you are already in room!");
+                    return;
+                }
+				if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+				if(roomd == ''){
+                    alert("please input roomd!");
+                    return;
+                }
+				var messageObj = {'cmd':'join','name':user_name,'password':user_password,'room':roomd};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+			};
+            document.getElementById("btn_left_room").onclick = () => {
+				let msg = document.getElementById("message").value;
+                let user_name = document.getElementById("name").value;
+                let user_password = document.getElementById("password").value;
+                let roomd = document.getElementById("room").value;
+                if(ws == null){
+					alert("please connect ws server!");
+                    return;
+				}
+                if(room == 0){
+                    alert("you are not in room!");
+                    return;
+                }
+				if(user_name == ''){
+                    alert("please input name!");
+                    return;
+                }
+				if(user_password == ''){
+                    alert("please input password!");
+                    return;
+                }
+				if(roomd == ''){
+                    alert("please input roomd!");
+                    return;
+                }
+				var messageObj = {'cmd':'left','name':user_name,'password':user_password,'room':roomd};
+                var messageJson = JSON.stringify(messageObj);//转换为json字符串
+        
+                ws.send(messageJson);
+				document.getElementById("log").value += messageJson;
+				document.getElementById("log").value += "\n";
+			};
+        });
+    </script>
+</head>
+<body>
+
+<div id="header">
+    <h1 align="left">WebSocket Client ChatRoom</h1>
+    WS Server: <input id="server_addr" type="text" value="192.168.186.143:9998">
+    <input id="btn_connect" type="button" value="Connect!"><br/><br/>
+    
+    Name: <input id="name" type="text" value=""><br/><br/>
+    Password: <input id="password" type="text" value="">
+
+	<input id="btn_register" type="button" value="Register">
+	<input id="btn_login" type="button" value="Login"><br/><br/>
+	
+	Room: <input id="room" type="text" value="">
+	<input id="btn_create_room" type="button" value="create_room">
+	<input id="btn_join_room" type="button" value="join_room">
+	<input id="btn_left_room" type="button" value="left_room"><br/><br/>
+    Message: <input id="message" type="text" value="">
+    <input id="btn_send" type="button" value="Send"><br/><br/>
+
+    <textarea cols="250" id="log" rows="50"></textarea>
+</div>
+</body>
+</html>

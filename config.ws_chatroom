@@ -1,0 +1,9 @@
+thread=8--工作线程数目
+logger=nil
+harbor=0
+start="main" -- 启动第一服务 
+lua_path="./skynet/lualib/?.lua;".."./test/lualib/?.lua;".."./skynet/lualib/?/init.lua".."./lua-cjson/?.lua"
+luaservice = "./skynet/service/?.lua;".."./myexample/ws_chatroom/?.lua;".."./skynet/test/?.lua;"
+lualoader = "./skynet/lualib/loader.lua"
+cpath = "./skynet/cservice/?.so;" -- actor 内存块 + 消息队列
+lua_cpath = "./skynet/luaclib/?.so;".."./lua-cjson/?.so" -- C语言写的lua库
