@@ -23,16 +23,10 @@
                 document.getElementById("log").value += msg;
                 document.getElementById("log").value += "\n";
                 
-				//var msg = info.cmd + "  " + info.ok + " " + info.error;
 				
-				//document.getElementById("log").value += msg;
-				//document.getElementById("log").value += "\n";
                 if(info.cmd == "create_res"){
-                    //var msg = info.cmd + "  " + info.ok + " " + info.room;
                     room = info.room;
                     document.getElementById("room").value = info.room;
-                    //document.getElementById("log").value += msg;
-				    //document.getElementById("log").value += "\n";
                 }
                 else if(info.cmd == "login_res"){
                     if(info.ok == true){
@@ -48,32 +42,13 @@
                     
                     document.getElementById("log").value += info.msg;
                     document.getElementById("log").value += "\n";
+                }   
+                else if(info.cmd == "left_res"){
+                    if(info.ok == true){
+                        room = 0;
+                    }
                 }
 
-                //document.getElementById("log").value += event.data;
-				/*
-				if(info.msg_id == 101){
-                    document.getElementById("log").value += ("server:" + info.data + "\n");
-                }
-                else if(info.msg_id == 203){
-                    document.getElementById("log").value += (info.name + ":" + info.data + "\n");
-                }
-				else if(info.msg_id == 103){
-                    alert("login ok");
-					is_login = true;
-                }
-				else if(info.msg_id == 104){
-                    alert("login error");
-                }
-				else if(info.msg_id == 105){
-                    alert("register ok");
-                }
-                else if(info.msg_id == 106){
-                    alert("register error");
-                }
-				
-				*/
-                
             };
             ws.onclose = () => {
 				is_login = false;
@@ -155,6 +130,10 @@
                 }
 				if(user_password == ''){
                     alert("please input password!");
+                    return;
+                }
+                if(is_login == true){
+                    alert("you are already login!");
                     return;
                 }
 				
@@ -261,7 +240,7 @@
 
 <div id="header">
     <h1 align="left">WebSocket Client ChatRoom</h1>
-    WS Server: <input id="server_addr" type="text" value="192.168.186.143:9998">
+    WS Server: <input id="server_addr" type="text" value="192.168.186.137:9998">
     <input id="btn_connect" type="button" value="Connect!"><br/><br/>
     
     Name: <input id="name" type="text" value=""><br/><br/>

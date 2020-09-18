@@ -7,7 +7,7 @@ local sockethelper = require "http.sockethelper"
 local cjson = require "cjson"
 
 local clientfd , header = ...
-clientfd = tonumber(clientfd)
+clientfd = tonumber(clientfd) --也就是ws的fd
 
 -- 客户端信息记录，包括fd,name，password，本服务号
 local client = {}
@@ -26,27 +26,19 @@ local function read_table(result)
 end
 
 function CMD.get(msg)
-    --print("CMD.get")
     header = cjson.decode(msg);
-    --print(header["sec-websocket-key"])
     ws = websocket.new(clientfd, header, handler)
-    --print(type(ws))
     ws:start()  
 end
 
 function CMD.login(msg)
-    
-    --print(msg.name)
-    -- local ok = rds:exists("user:" .. msg.name)
     local ok = skynet.call(rds,"lua","exists","user:" .. msg.name)
-    --print("login1",ok)
     local res = {}
     res.cmd = "login_res"
 
     if not ok then 
         res.ok = ok;
         res.msg = "不存在用户名"
-
         ws:send_text(cjson.encode(res))
         return 
     end
@@ -56,23 +48,20 @@ function CMD.login(msg)
     if tb.password ~= msg.password then 
         res.ok = false;
         res.msg = "密码错误"
+
         ws:send_text(cjson.encode(res))
     else
         client.name = msg.name
         client.password = msg.password
-
         res.ok = true;
+
         ws:send_text(cjson.encode(res))
         skynet.send(hall, "lua", "ready", client)--这里不能发送ws
     end
 end
 
 function CMD.register(msg)
-    --print(msg.name)
-    -- local ok = rds:exists("user:" .. msg.name)
     local ok = skynet.call(rds,"lua","exists","user:" .. msg.name)
-    --print(ok)
-
     local res = {}
     res.cmd = "register_res"
 
@@ -85,8 +74,6 @@ function CMD.register(msg)
         res.msg = "用户名已存在"
     end
 
-    --local js = cjson.encode(res)
-    --print(js)
     ws:send_text(cjson.encode(res))
 end
 
@@ -95,6 +82,7 @@ function CMD.create(msg)
     skynet.error("create room ",ok,roomd)
     local res = {}
     res.cmd = "create_res"
+
     if ok then 
         client.room = roomd
         res.room = roomd
@@ -103,6 +91,7 @@ function CMD.create(msg)
         client.room = 0
         res.ok = false
     end
+
     ws:send_text(cjson.encode(res))
 end
 
@@ -125,14 +114,31 @@ end
 
 
 --[[
-    未完成
     离开房间逻辑
     agent call roomd，房间服务将该用户移除，并在房间内广播
-    room call hall 房间服务将该用户信息发回hall大厅服务管理。
+    room send hall 房间服务将该用户信息发回hall大厅服务管理。
     client.room = 0;
 ]]
 function CMD.left(msg)
+    local res = {}
+    res.cmd = "left_res"
+    if client.room == 0 then
+        res.ok = false
+        res.msg = "你未加入房间"
+        ws:send_text(cjson.encode(res))
+        return 
+    end
 
+    local ok = skynet.call(client.room, "lua", "left", client)
+    if not ok then 
+        res.ok = false
+        res.msg = "错误"
+        ws:send_text(cjson.encode(res))
+    else
+        res.ok = true
+        res.msg = "你已离开房间"
+        ws:send_text(cjson.encode(res))
+    end
 end
 
 function CMD.chat(msg)
@@ -155,7 +161,7 @@ end
 
 function handler.on_message(ws, message)
     print(string.format("%d receive:%s", ws.id, message))
-    print(type(message))
+    --print(type(message))
     local msg = cjson.decode(message)
     local f = CMD[msg.cmd]
     assert(f)
@@ -167,14 +173,13 @@ end
 function handler.on_close(ws, code, reason)
     print(string.format("%d close:%s  %s", ws.id, code, reason))
 
-    --[[
-        if client.room == 0 then
+    if client.room == 0 then -- 如果没加入房间，从大厅删除
         skynet.call(hall,"lua","del",client)
-    else
+    else -- 如果加入了房间，从房间删除
         skynet.call(client.room,"lua","del",client)
-    ]]
-    
+    end
 
+    socket.close(client.clientfd)
     skynet.exit()
 end
 
@@ -183,10 +188,9 @@ end
 -- http://192.168.186.143:9999/
 skynet.start(function()
 
-    --header = cjson.decode(header)
     rds = skynet.uniqueservice("redis")
     hall = skynet.uniqueservice("hall")
-    --print("recv a connection:", clientfd)
+    
     socket.start(clientfd)
     client.clientfd = clientfd
     client.agent = skynet.self()

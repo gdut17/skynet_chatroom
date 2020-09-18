@@ -17,7 +17,7 @@ local CMD ={}
 
 local cs = queue()
 
-
+-- ws发送数据
 local function send_frame(id, fin, opcode, data)
     local finbit, mask_bit
     if fin then
@@ -58,15 +58,25 @@ end
 
 
 function CMD.ready(client)
-    print("ready", type(client))
+    --print("ready", type(client))
+    skynet.error("new user login hall: ",client.name)
     table.insert(users,1,client)
-    send_text(client.clientfd,"hello")
+    --send_text(client.clientfd,"hello")
+end
+
+function CMD.del(client)
+    for k,v in pairs(users) do
+        if v.name == client.name then
+            table.remove(users,k)
+            skynet.retpack(true)
+            return 
+        end
+    end
+    skynet.retpack(false)
 end
 
 function CMD.create(client)
-   -- print("ready", type(client))
     local roomd = skynet.newservice("room")
-    skynet.error("type ",type(roomd))
     table.insert(rooms,1,roomd)
 
     for k,v in pairs(users) do
@@ -80,13 +90,10 @@ function CMD.create(client)
 end
 
 function CMD.join(client)
-    -- print("ready", type(client))
-    skynet.error("type ",type(client.room))
-    skynet.error("join ",client.room)
     local is_room = false
     for _,v in pairs(rooms) do
         if v == client.room then 
-            skynet.error("找到room")
+            --skynet.error("找到room")
             is_room = true
             break
         end
@@ -104,19 +111,18 @@ function CMD.join(client)
             break
          end
     end
+
     skynet.retpack(true)
  end
-
 
 
 skynet.start(function()
 
     skynet.dispatch("lua", function (_, _, cmd, ...)
         local f = CMD[cmd]
-        print("hall", cmd)
+        --print("hall", cmd)
         assert(f)
         --f(...)
         cs(f, ...)
     end)
-
 end)
